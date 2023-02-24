@@ -26,6 +26,12 @@ mkdir -p /var/lib/tinydm
 
 target="/var/lib/tinydm/default-session.desktop"
 session_old=$(readlink -f $target)
+
+# Be quiet in post-install scripts if the desired session is already set
+if [ "$session_old" = "$session" ]; then
+	exit 0
+fi
+
 if [ -e "$session_old" ] && ! $force; then
 	echo "tinydm: Session already set to: $session_old"
         echo "tinydm: To change it, run: 'tinydm-set-session -f -s $session'"

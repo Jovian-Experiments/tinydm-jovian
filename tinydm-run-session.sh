@@ -1,6 +1,10 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Copyright 2020 Oliver Smith
 # SPDX-License-Identifier: GPL-3.0-or-later
+
+# Modified for Jovian-NixOS from tinydm 1.1.3
+# Upstream: https://gitlab.com/postmarketOS/tinydm
+# Our modifications are contained in run_session_jovian
 
 setup_log() {
 	logfile=${XDG_STATE_HOME:-~/.local/state}/tinydm.log
@@ -116,6 +120,75 @@ run_session() {
 	esac
 }
 
-setup_log
+run_session_jovian() {
+	# Jovian: Search for the preferred session in XDG_DATA_DIRS
+	#
+	# We use Bash-isms here
+
+	: "${JOVIAN_PREFERRED_SESSION:=*}"
+
+	session_dirs=()
+	resolved=""
+	resolved_type=""
+
+	IFS=: command eval 'session_dirs=(${XDG_DATA_DIRS:-/usr/share})'
+
+	while read -r candidate; do
+		case "$(basename "$(dirname "$candidate")")" in
+			wayland-sessions)
+				resolved="$candidate"
+				resolved_type="wayland"
+				break
+				;;
+			xsessions)
+				resolved="$candidate"
+				resolved_type="x11"
+				break
+				;;
+		esac
+	done < <(find "${session_dirs[@]}" -maxdepth 2 -xtype f -name "$JOVIAN_PREFERRED_SESSION.desktop" || true)
+
+	if [[ -z "$resolved" ]]; then
+		echo "ERROR: could not find preferred session!"
+		exit 1
+	fi
+
+	# The rest is basically the same
+
+	desktop="$(basename "$resolved" | sed 's/\.desktop$//')"
+	export XDG_SESSION_DESKTOP="$desktop"
+	cmd="$(parse_xdg_desktop "$resolved" "Exec")"
+
+	desktop_names="$(parse_xdg_desktop "$resolved" "DesktopNames")"
+	if [ -n "$desktop_names" ]; then
+		export XDG_CURRENT_DESKTOP="$desktop_names"
+	fi
+
+	echo "--- tinydm ---"
+	echo "Date:    $(date)"
+	echo "Session: $resolved"
+	echo "Desktop: $desktop"
+	echo "Exec:    $cmd"
+	echo "---"
+
+	case "$resolved_type" in
+		wayland)
+			source_session_profiles wayland
+			# shellcheck disable=SC2086
+			run_session_wayland $cmd
+			;;
+		x11)
+			source_session_profiles x11
+			# shellcheck disable=SC2086
+			run_session_x $cmd
+			;;
+		*)
+			echo "ERROR: could not detect session type!"
+			exit 1
+			;;
+	esac
+}
+
+#setup_log
 source_profile
-run_session
+run_session_jovian

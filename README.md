@@ -1,3 +1,10 @@
+# tinydm-jovian
+
+This repo contains a fork of [TinyDM](https://gitlab.com/postmarketOS/tinydm) for use in [Jovian-NixOS](https://github.com/Jovian-Experiments/Jovian-NixOS).
+For other usecases, please use the upstream version instead.
+
+---
+
 # tinydm
 
 Tiny wayland / x11 session starter for single user machines

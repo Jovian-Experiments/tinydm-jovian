@@ -55,7 +55,7 @@ parse_xdg_desktop() {
 # $1: Exec line from .desktop file
 run_session_wayland() {
 	export XDG_SESSION_TYPE=wayland
-	exec "$@"
+	exec dbus-run-session -- "$@"
 }
 
 # $1: Exec line from .desktop file
@@ -64,7 +64,7 @@ run_session_x() {
 
 	# startx needs the absolute executable path, otherwise it will not
 	# recognize the executable as command to be executed
-	cmd_startx="startx $(command -v "$1")"
+	cmd_startx="dbus-run-session -- startx $(command -v "$1")"
 
 	# 'Exec' in desktop entries may contain arguments for the executable:
 	# https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#exec-variables
